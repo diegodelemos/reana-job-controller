@@ -23,22 +23,25 @@
 """Volume template generation."""
 
 import json
-import yaml
 import os
-import pkg_resources
 from string import Template
+
+import pkg_resources
+
+import yaml
 
 k8s_shareddata_config = yaml.load(open(os.environ.get(
     'REANA_SHAREDDATA_CONFIG',
-    pkg_resources.resource_filename('reana_job_controller','resources/shareddata_config.yml')
-)))
+    pkg_resources.resource_filename('reana_job_controller',
+                                    'resources/shareddata_config.yml'))))
 
 k8s_scopesecret_config = yaml.load(open(os.environ.get(
     'REANA_SCOPESECRET_CONFIG',
-    pkg_resources.resource_filename('reana_job_controller','resources/scopesecret_config.yml')
-)))
+    pkg_resources.resource_filename('reana_job_controller',
+                                    'resources/scopesecret_config.yml'))))
 
-CEPHFS_PATHS = {x['scopename']:x['path'] for x in k8s_shareddata_config['shared_data']}
+CEPHFS_PATHS = {x['scopename']:
+                x['path'] for x in k8s_shareddata_config['shared_data']}
 
 
 CVMFS_REPOSITORIES = {
@@ -85,23 +88,23 @@ def get_k8s_cephfs_volume(experiment):
     :param experiment: Experiment name.
     :returns: k8s CephFS volume spec as a dictionary.
     """
-    template = Template(json.dumps(k8s_shareddata_config['shared_data_k8s_template']))
+    template = Template(
+        json.dumps(k8s_shareddata_config['shared_data_k8s_template']))
 
     return json.loads(
         template.substitute(
             experiment=experiment,
-            path=CEPHFS_PATHS[experiment]
-       )
-    )
+            path=CEPHFS_PATHS[experiment]))
 
 
 def get_k8s_secret_volumes(experiment):
-    """Render k8s Secrets based on experiment
+    """Render k8s Secrets based on experiment.
 
     :param experiment: Experiment name.
     :returns: k8s volume spec as a dictionary
     """
     return k8s_scopesecret_config[experiment]
+
 
 def get_k8s_cvmfs_volume(experiment, repository):
     """Render k8s CVMFS volume template.

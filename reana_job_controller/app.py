@@ -28,9 +28,8 @@ import threading
 import uuid
 
 from flask import Flask, abort, jsonify, request
-
-from reana_job_controller.k8s import (create_api_client, prepare_job, instantiate_job,
-                                      watch_jobs, watch_pods)
+from reana_job_controller.k8s import (create_api_client, instantiate_job,
+                                      prepare_job, watch_jobs, watch_pods)
 
 app = Flask(__name__)
 app.secret_key = "mega secret key"
@@ -181,14 +180,13 @@ def create_job():
     job_id = str(uuid.uuid4())
 
     job_manifest = prepare_job(job_id,
-                              request.json['docker-img'],
-                              cmd,
-                              cvmfs_repos,
-                              env_vars,
-                              request.json['experiment'],
-                              shared_file_system=True,
-                              scopesecrets=True
-                              )
+                               request.json['docker-img'],
+                               cmd,
+                               cvmfs_repos,
+                               env_vars,
+                               request.json['experiment'],
+                               shared_file_system=True,
+                               scopesecrets=True)
 
     job_obj = instantiate_job(job_manifest)
     if job_obj:

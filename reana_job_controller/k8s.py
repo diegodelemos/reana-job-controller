@@ -23,12 +23,13 @@
 """Kubernetes wrapper."""
 
 import logging
-import time
-import yaml
 import shlex
+import time
+
 import pkg_resources
 
 import pykube
+import yaml
 from flask import current_app as app
 from reana_job_controller import volume_templates
 
@@ -56,8 +57,8 @@ def add_shared_volume(job, namespace):
 
 
 def prepare_job(job_id, docker_img, cmd, cvmfs_repos, env_vars, namespace,
-                    shared_file_system, scopesecrets):
-    """Prepares a Kubernetes job Manifest.
+                shared_file_system, scopesecrets):
+    """Prepare a Kubernetes job Manifest.
 
     :param job_id: Job uuid.
     :param docker_img: Docker image to run the job.
@@ -72,7 +73,10 @@ def prepare_job(job_id, docker_img, cmd, cvmfs_repos, env_vars, namespace,
     :returns: Kubernetes job object if the job was successfuly created,
         None if not.
     """
-    job = yaml.load(pkg_resources.resource_stream('reana_job_controller','resources/job_template.yml'))
+    job = yaml.load(
+        pkg_resources.resource_stream(
+            'reana_job_controller',
+            'resources/job_template.yml'))
     job['metadata']['name'] = job_id
     job['metadata']['namespace'] = namespace
     job['spec']['template']['metadata']['name'] = job_id
@@ -99,13 +103,14 @@ def prepare_job(job_id, docker_img, cmd, cvmfs_repos, env_vars, namespace,
 
             volume['name'] += '-{}'.format(num)
             (job['spec']['template']['spec']['containers'][0]
-                ['volumeMounts'].append(
-                    {'name': volume['name'], 'mountPath': mount_path}
-                ))
+             ['volumeMounts'].append(
+                 {'name': volume['name'], 'mountPath': mount_path}
+             ))
             job['spec']['template']['spec']['volumes'].append(volume)
 
     if scopesecrets:
-        for num, secret in enumerate(volume_templates.get_k8s_secret_volumes(namespace)):
+        for num, secret in enumerate(
+                volume_templates.get_k8s_secret_volumes(namespace)):
             secretname = 'secret-{}'.format(num)
             volume = {
                 'name': secretname,
@@ -116,14 +121,15 @@ def prepare_job(job_id, docker_img, cmd, cvmfs_repos, env_vars, namespace,
                 'mountPath': secret['mountPath']
             }
             (job['spec']['template']['spec']['containers'][0]
-                ['volumeMounts'].append(mount))
+             ['volumeMounts'].append(mount))
             job['spec']['template']['spec']['volumes'].append(volume)
 
     return job
 
+
 def instantiate_job(job_manifest):
-    """Creates a Kubernetes Job based on a Manifest
-    
+    """Create a Kubernetes Job based on a Manifest.
+
     :param job_manifest: The Job Manifest
     :returns: Kubernetes job object if the job was successfuly created,
         None if not.
@@ -135,6 +141,7 @@ def instantiate_job(job_manifest):
         return job_obj
     except pykube.exceptions.HTTPError:
         return None
+
 
 def watch_jobs(job_db, config):
     """Open stream connection to k8s apiserver to watch all jobs status.
@@ -156,36 +163,27 @@ def watch_jobs(job_db, config):
             if job.name in unended_jobs and event.type == 'DELETED':
                 while not job_db[job.name].get('pod'):
                     time.sleep(5)
-                    logging.warn(
-                        'Job {} Pod still not known'.format(job.name)
-                    )
+                    logging.warn('Job %s Pod still not known', job.name)
                 while job.exists():
-                    logging.warn(
-                        'Waiting for Job {} to be cleaned'.format(
-                            job.name
-                        )
-                    )
+                    logging.warn('Waiting for Job %s to be cleaned', job.name)
                     time.sleep(5)
                 logging.info(
-                    'Deleting {}\'s pod -> {}'.format(
-                        job.name, job_db[job.name]['pod'].name
-                    )
+                    'Deleting %s\'s pod -> %s',
+                    job.name, job_db[job.name]['pod'].name
                 )
                 job_db[job.name]['pod'].delete()
                 job_db[job.name]['deleted'] = True
 
             elif (job.name in unended_jobs and
                   job.obj['status'].get('succeeded')):
-                logging.info(
-                    'Job {} successfuly ended. Cleaning...'.format(job.name)
-                )
+                logging.info('Job %s successfuly ended. Cleaning...', job.name)
                 job_db[job.name]['status'] = 'succeeded'
                 job.delete()
 
             # with the current k8s implementation this is never
             # going to happen...
             elif job.name in unended_jobs and job.obj['status'].get('failed'):
-                logging.info('Job {} failed. Cleaning...'.format(job.name))
+                logging.info('Job %s failed. Cleaning...', job.name)
                 job_db[job['metadata']['name']]['status'] = 'failed'
                 job.delete()
 
@@ -213,9 +211,7 @@ def watch_pods(job_db, config):
             # Store existing job pod if not done yet
             if job_name in job_db and not job_db[job_name].get('pod'):
                 # Store job's pod
-                logging.info(
-                    'Storing {} as Job {} Pod'.format(pod.name, job_name)
-                )
+                logging.info('Storing %s as Job %s Pod', pod.name, job_name)
                 job_db[job_name]['pod'] = pod
             # Take note of the related Pod
             if job_name in unended_jobs:
@@ -231,11 +227,8 @@ def watch_pods(job_db, config):
                         get('terminated', {})
                     )
 
-                    logging.info(
-                        'Updating Pod {} restarts to {}'.format(
-                            pod.name, restarts
-                        )
-                    )
+                    logging.info('Updating Pod %s restarts to %s', pod.name,
+                                 restarts)
 
                     job_db[job_name]['restart_count'] = restarts
 
@@ -243,25 +236,17 @@ def watch_pods(job_db, config):
                        exit_code > 0:
 
                         logging.info(
-                            'Job {} failed with code {} and reached max restarts ({})'.format(
-                                job_name,
-                                exit_code,
-                                restarts
-                                )
+                            '''Job %s failed with code %s and reached max
+                            restarts (%s)''', job_name, exit_code, restarts
                         )
-                        
-                        logging.info(
-                            'Getting {} logs'.format(pod.name)
-                        )
+
+                        logging.info('Getting %s logs', pod.name)
                         job_db[job_name]['log'] = pod.logs()
-                        logging.info(
-                            'Cleaning Job {}'.format(job_name)
-                        )
+                        logging.info('Cleaning Job %s', job_name)
                         job_db[job_name]['status'] = 'failed'
                         job_db[job_name]['obj'].delete()
 
                 except KeyError as e:
-                    logging.debug('Skipping event because: {}'.format(e))
-                    logging.debug(
-                        'Event: {}\nObject:\n{}'.format(event.type, pod.obj)
-                    )
+                    logging.debug('Skipping event because: %s', e)
+                    logging.debug('Event: %s\nObject:\n%s', event.type,
+                                  pod.obj)
