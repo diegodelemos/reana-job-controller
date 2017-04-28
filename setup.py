@@ -48,6 +48,7 @@ extras_require = {
         'Sphinx>=1.4.4',
         'sphinx-rtd-theme>=0.1.9',
         'sphinxcontrib-httpdomain>=1.5.0',
+        'sphinxcontrib-openapi>=0.3.0'
     ],
     'tests': tests_require,
 }
@@ -65,6 +66,7 @@ setup_requires = [
 install_requires = [
     'Flask==0.10.1',
     'pykube>=0.14.0',
+    'apispec>=0.21.0',
 ]
 
 packages = find_packages()

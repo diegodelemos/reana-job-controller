@@ -31,10 +31,13 @@ from flask import Flask, abort, jsonify, request
 
 from reana_job_controller.k8s import (create_api_client, instantiate_job,
                                       watch_jobs, watch_pods)
+from spec import openapi_spec
 
 app = Flask(__name__)
 app.secret_key = "mega secret key"
 JOB_DB = {}
+
+openapi = openapi_spec(app)
 
 
 def filter_jobs(job_db):
@@ -58,61 +61,50 @@ def filter_jobs(job_db):
 def get_jobs():
     """Get all jobs.
 
-    .. http:get:: /jobs
-
-        Returns a JSON list with all the jobs.
-
-        **Request**:
-
-        .. sourcecode:: http
-
-            GET /jobs HTTP/1.1
-            Content-Type: application/json
-            Host: localhost:5000
-
-        :reqheader Content-Type: application/json
-
-        **Responses**:
-
-        .. sourcecode:: http
-
-            HTTP/1.0 200 OK
-            Content-Length: 80
-            Content-Type: application/json
-
-            {
-              "jobs": {
-                "1612a779-f3fa-4344-8819-3d12fa9b9d90": {
-                  "cmd": "sleep 1000",
-                  "cvmfs_mounts": [
-                    "atlas-condb",
-                    "atlas"
-                  ],
-                  "docker-img": "busybox",
-                  "experiment": "atlas",
-                  "job-id": "1612a779-f3fa-4344-8819-3d12fa9b9d90",
-                  "max_restart_count": 3,
-                  "restart_count": 0,
-                  "status": "succeeded"
-                },
-                "2e4bbc1d-db5e-4ee0-9701-6e2b1ba55c20": {
-                  "cmd": "sleep 1000",
-                  "cvmfs_mounts": [
-                    "atlas-condb",
-                    "atlas"
-                  ],
-                  "docker-img": "busybox",
-                  "experiment": "atlas",
-                  "job-id": "2e4bbc1d-db5e-4ee0-9701-6e2b1ba55c20",
-                  "max_restart_count": 3,
-                  "restart_count": 0,
-                  "status": "started"
+    ---
+    get:
+      description: Get all Jobs
+      produces:
+       - application/json
+      responses:
+        200:
+          description: Job list.
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Job'
+          examples:
+            application/json:
+              {
+                "jobs": {
+                  "1612a779-f3fa-4344-8819-3d12fa9b9d90": {
+                    "cmd": "sleep 1000",
+                    "cvmfs_mounts": [
+                      "atlas-condb",
+                      "atlas"
+                    ],
+                    "docker-img": "busybox",
+                    "experiment": "atlas",
+                    "job-id": "1612a779-f3fa-4344-8819-3d12fa9b9d90",
+                    "max_restart_count": 3,
+                    "restart_count": 0,
+                    "status": "succeeded"
+                  },
+                  "2e4bbc1d-db5e-4ee0-9701-6e2b1ba55c20": {
+                    "cmd": "sleep 1000",
+                    "cvmfs_mounts": [
+                      "atlas-condb",
+                      "atlas"
+                    ],
+                    "docker-img": "busybox",
+                    "experiment": "atlas",
+                    "job-id": "2e4bbc1d-db5e-4ee0-9701-6e2b1ba55c20",
+                    "max_restart_count": 3,
+                    "restart_count": 0,
+                    "status": "started"
+                  }
                 }
               }
-            }
-
-        :resheader Content-Type: application/json
-        :statuscode 200: no error - the list has been returned.
     """
     return jsonify({"jobs": filter_jobs(JOB_DB)}), 200
 
@@ -121,48 +113,43 @@ def get_jobs():
 def create_job():
     """Create a new job.
 
-    .. http:post:: /jobs
-
+    ---
+    post:
+      summary: |-
         This resource is expecting JSON data with all the necessary
         information of a new job.
-
-        **Request**:
-
-        .. sourcecode:: http
-
-            POST /jobs HTTP/1.1
-            Content-Type: application/json
-            Host: localhost:5000
-
-            {
-                "docker-img": "busybox",
-                "cmd": "sleep 1000",
-                "cvmfs_mounts": ["atlas-condb", "atlas"],
-                "env-vars": {"DATA": "/data"},
-                "experiment": "atlas"
-            }
-
-        :reqheader Content-Type: application/json
-        :json body: JSON with the information of the job.
-
-        **Responses**:
-
-        .. sourcecode:: http
-
-            HTTP/1.0 200 OK
-            Content-Length: 80
-            Content-Type: application/json
-
-            {
-              "job-id": "cdcf48b1-c2f3-4693-8230-b066e088c6ac"
-            }
-
-        :resheader Content-Type: application/json
-        :statuscode 201: no error - the job was created
-        :statuscode 400: invalid request - problably a malformed JSON
-        :statuscode 500: internal error - probably the job could not be
-            created
+      description: Create a new Job.
+      operationId: create_job
+      consumes:
+       - application/json
+      produces:
+       - application/json
+      parameters:
+       - name: job
+         in: body
+         description: Information needed to instantiate a Job
+         required: true
+         schema:
+           $ref: '#/definitions/JobRequest'
+      responses:
+        201:
+          description: The Job has been created.
+          schema:
+            type: object
+            properties:
+              job-id:
+                type: string
+          examples:
+            application/json:
+              {
+                "job-id": "cdcf48b1-c2f3-4693-8230-b066e088c6ac"
+              }
+        400:
+          description: Invalid request - probably malformed JSON
+        500:
+          description: Internal error - probably the job could not be allocated
     """
+
     if not request.json \
        or not ('experiment') in request.json\
        or not ('docker-img' in request.json):
@@ -204,33 +191,26 @@ def create_job():
 
 @app.route('/jobs/<job_id>', methods=['GET'])
 def get_job(job_id):
-    """Get a job.
+    """Get a Job.
 
-    FIXME --> probably this endpoint should be merged with `get_jobs()`
-
-    .. http:get:: /jobs/<job_id>
-
-        Returns a JSON list with all the jobs.
-
-        **Request**:
-
-        .. sourcecode:: http
-
-            GET /jobs/cdcf48b1-c2f3-4693-8230-b066e088c6ac HTTP/1.1
-            Content-Type: application/json
-            Host: localhost:5000
-
-        :reqheader Content-Type: application/json
-
-        **Responses**:
-
-        .. sourcecode:: http
-
-            HTTP/1.0 200 OK
-            Content-Length: 80
-            Content-Type: application/json
-
-            {
+    ---
+    get:
+      description: Get a Job by its id
+      produces:
+       - application/json
+      parameters:
+       - name: job_id
+         in: path
+         description: ID of the Job
+         required: true
+         type: string
+      responses:
+        200:
+          description: The Job.
+          schema:
+            $ref: '#/definitions/Job'
+          examples:
+            application/json:
               "job": {
                 "cmd": "sleep 1000",
                 "cvmfs_mounts": [
@@ -244,11 +224,8 @@ def get_job(job_id):
                 "restart_count": 0,
                 "status": "started"
               }
-            }
-
-        :resheader Content-Type: application/json
-        :statuscode 200: no error - the list has been returned.
-        :statuscode 404: error - the specified job doesn't exist.
+        404:
+          description: The Job does not exist.
     """
     if job_id in JOB_DB:
         job_copy = copy.deepcopy(JOB_DB[job_id])
@@ -261,21 +238,31 @@ def get_job(job_id):
         abort(404)
 
 
+openapi.add_path(view=get_jobs)
+openapi.add_path(view=get_job)
+openapi.add_path(view=create_job)
+
+@app.route("/openapi")
+def apispec():
+    return jsonify(openapi.to_dict())
+
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s - %(threadName)s - %(levelname)s: %(message)s'
     )
     app.config.from_object('config')
-
+    """
     job_event_reader_thread = threading.Thread(target=watch_jobs,
                                                args=(JOB_DB,
                                                      app.config['PYKUBE_API']))
+
     job_event_reader_thread.start()
     pod_event_reader_thread = threading.Thread(target=watch_pods,
                                                args=(JOB_DB,
                                                      app.config['PYKUBE_API']))
     app.config['PYKUBE_CLIENT'] = create_api_client(app.config['PYKUBE_API'])
     pod_event_reader_thread.start()
+    """
     app.run(debug=True, port=5000,
             host='0.0.0.0')

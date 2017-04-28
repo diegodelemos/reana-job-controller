@@ -1,0 +1,212 @@
+{
+  "definitions": {
+    "Job": {
+      "properties": {
+        "cmd": {
+          "type": "string"
+        }, 
+        "cvmfs_mounts": {
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }, 
+        "docker-img": {
+          "type": "string"
+        }, 
+        "experiment": {
+          "type": "string"
+        }, 
+        "job-id": {
+          "type": "string"
+        }, 
+        "max_restart_count": {
+          "type": "integer"
+        }, 
+        "restart_count": {
+          "type": "integer"
+        }, 
+        "status": {
+          "type": "string"
+        }
+      }
+    }, 
+    "JobRequest": {
+      "properties": {
+        "cmd": {
+          "type": "string"
+        }, 
+        "cvmfs_mounts": {
+          "items": {
+            "type": "string"
+          }, 
+          "type": "array"
+        }, 
+        "docker-img": {
+          "type": "string"
+        }, 
+        "env-vars": {
+          "additionalProperties": {
+            "type": "string"
+          }, 
+          "type": "object"
+        }, 
+        "experiment": {
+          "type": "string"
+        }
+      }
+    }
+  }, 
+  "info": {
+    "description": "REANA Job Controller API", 
+    "title": "reana-job-controller", 
+    "version": "0.0.1"
+  }, 
+  "parameters": {}, 
+  "paths": {
+    "/jobs": {
+      "get": {
+        "description": "Get all Jobs", 
+        "produces": [
+          "application/json"
+        ], 
+        "responses": {
+          "200": {
+            "description": "Job list.", 
+            "examples": {
+              "application/json": {
+                "jobs": {
+                  "1612a779-f3fa-4344-8819-3d12fa9b9d90": {
+                    "cmd": "sleep 1000", 
+                    "cvmfs_mounts": [
+                      "atlas-condb", 
+                      "atlas"
+                    ], 
+                    "docker-img": "busybox", 
+                    "experiment": "atlas", 
+                    "job-id": "1612a779-f3fa-4344-8819-3d12fa9b9d90", 
+                    "max_restart_count": 3, 
+                    "restart_count": 0, 
+                    "status": "succeeded"
+                  }, 
+                  "2e4bbc1d-db5e-4ee0-9701-6e2b1ba55c20": {
+                    "cmd": "sleep 1000", 
+                    "cvmfs_mounts": [
+                      "atlas-condb", 
+                      "atlas"
+                    ], 
+                    "docker-img": "busybox", 
+                    "experiment": "atlas", 
+                    "job-id": "2e4bbc1d-db5e-4ee0-9701-6e2b1ba55c20", 
+                    "max_restart_count": 3, 
+                    "restart_count": 0, 
+                    "status": "started"
+                  }
+                }
+              }
+            }, 
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/Job"
+              }, 
+              "type": "array"
+            }
+          }
+        }
+      }, 
+      "post": {
+        "consumes": [
+          "application/json"
+        ], 
+        "description": "Create a new Job.", 
+        "operationId": "create_job", 
+        "parameters": [
+          {
+            "description": "Information needed to instantiate a Job", 
+            "in": "body", 
+            "name": "job", 
+            "required": true, 
+            "schema": {
+              "$ref": "#/definitions/JobRequest"
+            }
+          }
+        ], 
+        "produces": [
+          "application/json"
+        ], 
+        "responses": {
+          "201": {
+            "description": "The Job has been created.", 
+            "examples": {
+              "application/json": {
+                "job-id": "cdcf48b1-c2f3-4693-8230-b066e088c6ac"
+              }
+            }, 
+            "schema": {
+              "properties": {
+                "job-id": {
+                  "type": "string"
+                }
+              }, 
+              "type": "object"
+            }
+          }, 
+          "400": {
+            "description": "Invalid request - probably malformed JSON"
+          }, 
+          "500": {
+            "description": "Internal error - probably the job could not be allocated"
+          }
+        }, 
+        "summary": "This resource is expecting JSON data with all the necessary\ninformation of a new job."
+      }
+    }, 
+    "/jobs/{job_id}": {
+      "get": {
+        "description": "Get a Job by its id", 
+        "parameters": [
+          {
+            "description": "ID of the Job", 
+            "in": "path", 
+            "name": "job_id", 
+            "required": true, 
+            "type": "string"
+          }
+        ], 
+        "produces": [
+          "application/json"
+        ], 
+        "responses": {
+          "200": {
+            "description": "The Job.", 
+            "examples": {
+              "application/json": {
+                "job": {
+                  "cmd": "sleep 1000", 
+                  "cvmfs_mounts": [
+                    "atlas-condb", 
+                    "atlas"
+                  ], 
+                  "docker-img": "busybox", 
+                  "experiment": "atlas", 
+                  "job-id": "cdcf48b1-c2f3-4693-8230-b066e088c6ac", 
+                  "max_restart_count": 3, 
+                  "restart_count": 0, 
+                  "status": "started"
+                }
+              }
+            }, 
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          }, 
+          "404": {
+            "description": "The Job does not exist."
+          }
+        }
+      }
+    }
+  }, 
+  "swagger": "2.0", 
+  "tags": []
+}

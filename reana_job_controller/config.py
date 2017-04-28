@@ -24,4 +24,4 @@
 
 import pykube
 
-PYKUBE_API = pykube.KubeConfig.from_service_account()
+# PYKUBE_API = pykube.KubeConfig.from_service_account()
