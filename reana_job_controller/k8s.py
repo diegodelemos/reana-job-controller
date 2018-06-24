@@ -175,7 +175,8 @@ def watch_jobs(job_db):
             w = watch.Watch()
             for event in w.stream(
                     batchv1_api_client.list_job_for_all_namespaces,
-                    _request_timeout=60):
+                    _request_timeout= \
+                    config.KUBERNETES_STREAM_REQUEST_TIMEOUT):
                 logging.info(
                     'New Job event received: {0}'.format(event['type']))
                 job = event['object']

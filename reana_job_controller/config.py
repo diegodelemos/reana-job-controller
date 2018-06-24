@@ -29,3 +29,6 @@ MAX_JOB_RESTARTS = 3
 
 SHARED_VOLUME_PATH_ROOT = os.getenv("SHARED_VOLUME_PATH_ROOT", '/reana')
 """Root path in the underlying shared file system."""
+
+KUBERNETES_STREAM_REQUEST_TIMEOUT = 120
+"""Timeout in seconds for stream requests"""
